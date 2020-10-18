@@ -220,12 +220,12 @@ def run_sc_train (config) :
     x_ = op_dict["batch_signals"]
     y_val_ = op_dict["batch_measurements_val"]
     x_val_ = op_dict["batch_signals_val"]
-    initializer = op_dict["Initializer"]
+    initializer = op_dict["initializer"]
     measurements_placeholder = op_dict["measurements_placeholder"]
-    signals_placeholder = op_dict["Signals_placeholder"]
-    initializer_val = op_dict["Initializer_val"]
+    signals_placeholder = op_dict["signals_placeholder"]
+    initializer_val = op_dict["initializer_val"]
     measurements_placeholder_val = op_dict["measurements_placeholder_val"]
-    signals_placeholder_val = op_dict["Signals_placeholder_val"]
+    signals_placeholder_val = op_dict["signals_placeholder_val"]
 
     """Set up training."""
     stages = train.setup_sc_training (

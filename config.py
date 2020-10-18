@@ -132,6 +132,10 @@ train_arg.add_argument (
 train_arg.add_argument (
     '-bw', '--better_wait', type=int, default=4000,
     help="Waiting time before jumping to next stage.")
+train_arg.add_argument('--prefetch_size', type=int, default=10,
+                       help="Number of batches to prefetch during training.")
+train_arg.add_argument('--shuffle_buffer_size', type=int, default=10000,
+                       help='Size of buffer when shuffling.') # TODO: check exactly what shuffle buffer is
 
 
 # Experiments arguments
@@ -181,6 +185,34 @@ exp_arg.add_argument (
 exp_arg.add_argument (
     '-g', '--gpu', type=str, default='0',
     help="ID's of allocated GPUs.")
+
+# input data arguments
+input_arg = parser.add_argument_group ('input')
+input_arg.add_argument (
+    '--training_signals', type=str, default='',
+    help='File name of .npy-file containing training signals.')
+input_arg.add_argument (
+    '--training_measurements', type=str, default='',
+    help='File name of .npy-file containing training measurements.')
+input_arg.add_argument (
+    '--validation_set_size', type=int, default=1000,
+    help='Size of validation set. This data points will be stolen from training set set so training set size will decrease by this number.')
+
+input_arg.add_argument (
+    '--test_signals', type=str, default='',
+    help='File name of .npy-file containing test signals.')
+input_arg.add_argument (
+    '--test_measurements', type=str, default='',
+    help='File name of .npy-file containing test measurements.')
+
+input_arg.add_argument('--sampling_modality', type=str, default='',
+                       help='File name of .npy-file containing sampling modality.')
+
+# output data arguments
+#output_arg = parser.add_argument_group ('output')
+#output_arg.add_argument (
+#    '--recoveries_file_name', type=str, default='',
+#    help='Save file name for recovered signals. (Use when testing) ')
 
 
 def get_config():

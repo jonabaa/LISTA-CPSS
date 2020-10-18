@@ -202,21 +202,30 @@ def run_train (config) :
 
 
 def run_sc_train (config) :
-    """Load problem."""
-    if not os.path.exists (config.probfn):
-        raise ValueError ("Problem file not found.")
+    """ Load data. """
+    if config.test:
+      test_measurements, test_signals, sampling_modality = train.load_data(config)
     else:
-        p = problem.load_problem (config.probfn)
+      training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality = train.load_data(config)
+
+    m, N = sampling_modality.shape
 
     """Set up model."""
-    model = setup_model (config, A=p.A)
+    model = setup_model (config, A=sampling_modality)
 
     """Set up input."""
     config.SNR = np.inf if config.SNR == 'inf' else float (config.SNR)
-    y_, x_, y_val_, x_val_ = (
-        train.setup_input_sc (
-            config.test, p, config.tbs, config.vbs, config.fixval,
-            config.supp_prob, config.SNR, config.magdist, **config.distargs))
+    op_dict = train.setup_input_sc (config.test, m, N, config.tbs, config.vbs, config.prefetch_size, config.shuffle_buffer_size, config.SNR)
+    y_ = op_dict["batch_measurements"]
+    x_ = op_dict["batch_signals"]
+    y_val_ = op_dict["batch_measurements_val"]
+    x_val_ = op_dict["batch_signals_val"]
+    initializer = op_dict["Initializer"]
+    measurements_placeholder = op_dict["measurements_placeholder"]
+    signals_placeholder = op_dict["Signals_placeholder"]
+    initializer_val = op_dict["Initializer_val"]
+    measurements_placeholder_val = op_dict["measurements_placeholder_val"]
+    signals_placeholder_val = op_dict["Signals_placeholder_val"]
 
     """Set up training."""
     stages = train.setup_sc_training (
@@ -229,6 +238,10 @@ def run_sc_train (config) :
     with tf.Session (config=tfconfig) as sess:
         # graph initialization
         sess.run (tf.global_variables_initializer ())
+
+        # initialize data sets
+        sess.run(initializer, feed_dict={measurements_placeholder: training_measurements, signals_placeholder: training_signals})
+        sess.run(initializer_val, feed_dict={measurements_placeholder_val: validation_measurements, signals_placeholder_val: validation_signals})
 
         # start timer
         start = time.time ()

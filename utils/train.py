@@ -5,6 +5,7 @@
 train.py
 author: xhchrn
         chernxh@tamu.edu
+edit:   jonaudunbaar@gmail.com
 
 This file includes codes that set up training, do the training actually.
 """
@@ -15,8 +16,113 @@ import numpy as np
 
 from utils.data import bsd500_cs_inputs
 
+def load_data(config, reshape_order="C"):
+    """ Loads the custom input data, reshapes two-dimensional signals to one dimension
+        and returns the data set as a tuple of numpy arrays. Expects signals file to
+        be a .npy file with dims [batch size, width, height] and measurements file to
+        be a .npy file with dims [batch size, no of measurements].
 
-def setup_input_sc (test, p, tbs, vbs, fixval, supp_prob, SNR,
+        :param config: The config object defined in config.py.
+        :param reshape_order: In what order to reshape. 'C' for C-style. 'F' for Fortran style.
+    """
+    # load sampling modality
+    sampling_modality = np.load(config.sampling_modality)
+    print("Sampling modality with shape {} succesfully loaded from file'{}'.".format(sampling_modality.shape, config.sampling_modality))
+
+    if config.test:
+        test_signals = np.load(config.test_signals)
+        print("Test signals with shape {} successfully loaded from file '{}'.".format(test_signals.shape, config.test_signals))
+        test_measurements = np.load(config.test_measurements)
+        print("Test measurements with shape {} successfully loaded from file '{}'.".format(test_measurements.shape, config.test_measurements))
+        if len(test_signals.shape) == 2:
+            pass
+        elif len(test_signals.shape) == 3:
+            test_signals = test_signals.reshape(test_signals.shape[0],
+                                                test_signals.shape[1] * test_signals.shape[2],
+                                                order=reshape_order)
+        else:
+            raise ValueError("Unknown test signals shape: {}.".format(test_signals.shape))
+
+        return test_measurements, test_signals, sampling_modality
+    else:
+        signals = np.load(config.training_signals)
+        print("Training signals with shape {} successfully loaded from file '{}'.".format(signals.shape, config.training_signals))
+        measurements = np.load(config.training_measurements)
+        print("Training measurements with shape {} successfully loaded from file '{}'.".format(measurements.shape, config.training_measurements))
+        if len(signals.shape) == 2:
+            pass
+        elif len(signals.shape) == 3:
+            signals = signals.reshape(signals.shape[0],
+                                      signals.shape[1] * signals.shape[2],
+                                      order=reshape_order)
+        else:
+            raise ValueError("Unknown training signals shape: {}.".format(signals.shape))
+
+        validation_set_size = config.validation_set_size
+        training_signals = signals[validation_set_size:]
+        training_measurements = measurements[validation_set_size:]
+        validation_signals = signals[:validation_set_size]
+        validation_measurements = measurements[:validation_set_size]
+
+        print("Validation set assigned {} of the data points. Training set assigned {} of the data points.".format(validation_set_size,
+                                                                                                                   len(signals) - validation_set_size))
+
+        return training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality
+
+
+def setup_input_sc (test, m, N, tbs, vbs, prefetch_size, shuffle_buffer_size, SNR):
+    """ Sets up the input pipeline. (No data actual data is loaded.) """
+    signals_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, N])
+    measurements_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, m])
+
+    data_set = tf.data.Dataset.from_tensor_slices((measurements_placeholder, signals_placeholder))
+    data_set = data_set.repeat()
+    data_set = data_set.shuffle(shuffle_buffer_size)
+    data_set = data_set.batch(tbs)
+    data_set = data_set.prefetch(prefetch_size)
+
+    iterator = tf.data.Iterator.from_structure(data_set.output_types, data_set.output_shapes)
+    batch_measurements, batch_signals = iterator.get_next()
+    batch_measurements = tf.transpose(batch_measurements)
+    batch_signals = tf.transpose(batch_signals)
+    initializer = iterator.make_initializer(data_set)
+
+    if not test:
+        signals_placeholder_val = tf.placeholder(dtype=tf.float32, shape=[None, N])
+        measurements_placeholder_val = tf.placeholder(dtype=tf.float32, shape=[None, m])
+
+        data_set_val = tf.data.Dataset.from_tensor_slices((measurements_placeholder_val, signals_placeholder_val))
+        data_set_val = data_set_val.repeat()
+        data_set_val = data_set_val.shuffle(shuffle_buffer_size)
+        data_set_val = data_set_val.batch(vbs)
+        data_set_val = data_set_val.prefetch(prefetch_size) #TODO: fix this with it's own prefetch size if i/o-bottleneck persists
+
+        iterator_val = tf.data.Iterator.from_structure(data_set_val.output_types, data_set_val.output_shapes)
+        batch_measurements_val, batch_signals_val = iterator.get_next()
+        batch_measurements_val = tf.transpose(batch_measurements_val)
+        batch_signals_val = tf.transpose(batch_signals_val)
+        initializer_val = iterator_val.make_initializer(data_set_val)
+
+    if test:
+        return {"batch_measurements": batch_measurements,
+                "batch_signals": batch_signals,
+                "measurements_placeholder": measurements_placeholder,
+                "signals_placeholder": signals_placeholder,
+                "initializer": initializer}
+    else:
+        return {"batch_measurements": batch_measurements,
+                "batch_signals": batch_signals,
+                "measurements_placeholder": measurements_placeholder,
+                "signals_placeholder": signals_placeholder,
+                "initializer": initializer,
+                "batch_measurements_val": batch_measurements_val,
+                "batch_signals_val": batch_signals_val,
+                "measurements_placeholder_val": measurements_placeholder_val,
+                "signals_placeholder_val": signals_placeholder_val,
+                "initializer_val": initializer_val}
+
+
+def setup_input_sc_old (test, p, tbs, vbs, fixval, supp_prob, SNR,
                     magdist, **distargs):
     """TODO: Docstring for function.
 

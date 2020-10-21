@@ -16,7 +16,7 @@ import numpy as np
 
 from utils.data import bsd500_cs_inputs
 
-def load_data(config, reshape_order="C"):
+def load_data(config, reshape_order="F"):
     """ Loads the custom input data, reshapes two-dimensional signals to one dimension
         and returns the data set as a tuple of numpy arrays. Expects signals file to
         be a .npy file with dims [batch size, width, height] and measurements file to

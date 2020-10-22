@@ -204,9 +204,9 @@ def run_train (config) :
 def run_sc_train (config) :
     """ Load data. """
     if config.test:
-      test_measurements, test_signals, sampling_modality = train.load_data(config)
+      test_measurements, test_signals, sampling_modality, original_signal_shape = train.load_data(config)
     else:
-      training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality = train.load_data(config)
+      training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality, original_signal_shape = train.load_data(config)
 
     m, N = sampling_modality.shape
 
@@ -305,18 +305,18 @@ def run_test (config):
     elif config.task_type == 'cs':
         run_cs_test (config)
 
-def run_sc_test(config):
+def run_sc_test(config, reshape_order="F"):
   """
   Test model.
   """
 
   """ Load data. """
   if config.test:
-    test_measurements, test_signals, sampling_modality = train.load_data(config)
+    test_measurements, test_signals, sampling_modality, original_signal_shape = train.load_data(config)
     test_measurements = test_measurements.T
     test_signals = test_signals.T
   else:
-    training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality = train.load_data(
+    training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality, original_signal_shape = train.load_data(
       config)
 
   m, N = sampling_modality.shape
@@ -378,6 +378,9 @@ def run_sc_test(config):
              flsne=np.asarray(lflsne))
 
   if config.recoveries_parent_folder is not None:
+    xh = xh.T
+    if len(original_signal_shape) > 2:
+      xh = xh.reshape(original_signal_shape, order=reshape_order)
     save_recoveries(xh, res, config.recoveries_parent_folder)
 
   np.savez(config.resfn, **res)

@@ -209,10 +209,10 @@ input_arg.add_argument('--sampling_modality', type=str, default='',
                        help='File name of .npy-file containing sampling modality.')
 
 # output data arguments
-#output_arg = parser.add_argument_group ('output')
-#output_arg.add_argument (
-#    '--recoveries_file_name', type=str, default='',
-#    help='Save file name for recovered signals. (Use when testing) ')
+output_arg = parser.add_argument_group ('output')
+output_arg.add_argument (
+    '--recoveries_parent_folder', type=str,
+    help='Parent folder for recovered signals folders. (Use when testing) ')
 
 
 def get_config():

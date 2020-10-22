@@ -28,6 +28,7 @@ def load_data(config, reshape_order="F"):
     # load sampling modality
     sampling_modality = np.load(config.sampling_modality)
     print("Sampling modality with shape {} succesfully loaded from file'{}'.".format(sampling_modality.shape, config.sampling_modality))
+    original_signal_shape = None
 
     if config.test:
         test_signals = np.load(config.test_signals)
@@ -35,23 +36,25 @@ def load_data(config, reshape_order="F"):
         test_measurements = np.load(config.test_measurements)
         print("Test measurements with shape {} successfully loaded from file '{}'.".format(test_measurements.shape, config.test_measurements))
         if len(test_signals.shape) == 2:
-            pass
+            original_signal_shape = test_signals.shape
         elif len(test_signals.shape) == 3:
+            original_signal_shape = test_signals.shape
             test_signals = test_signals.reshape(test_signals.shape[0],
                                                 test_signals.shape[1] * test_signals.shape[2],
                                                 order=reshape_order)
         else:
             raise ValueError("Unknown test signals shape: {}.".format(test_signals.shape))
 
-        return test_measurements, test_signals, sampling_modality
+        return test_measurements, test_signals, sampling_modality, original_signal_shape
     else:
         signals = np.load(config.training_signals)
         print("Training signals with shape {} successfully loaded from file '{}'.".format(signals.shape, config.training_signals))
         measurements = np.load(config.training_measurements)
         print("Training measurements with shape {} successfully loaded from file '{}'.".format(measurements.shape, config.training_measurements))
         if len(signals.shape) == 2:
-            pass
+            original_signal_shape = signals.shape
         elif len(signals.shape) == 3:
+            original_signal_shape = signals.shape
             signals = signals.reshape(signals.shape[0],
                                       signals.shape[1] * signals.shape[2],
                                       order=reshape_order)
@@ -67,7 +70,7 @@ def load_data(config, reshape_order="F"):
         print("Validation set assigned {} of the data points. Training set assigned {} of the data points.".format(validation_set_size,
                                                                                                                    len(signals) - validation_set_size))
 
-        return training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality
+        return training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality, original_signal_shape
 
 
 def setup_input_sc (test, m, N, tbs, vbs, prefetch_size, shuffle_buffer_size, SNR):

@@ -358,6 +358,8 @@ def run_sc_test(config):
       xh = sess.run(xh_)
 
       # nmse:
+      print(type(np))
+      print(np)
       loss = np.sum(np.square(xh - x_))
       nmse_dB = 10.0 * np.log10(loss / nmse_denom)
       print(nmse_dB)

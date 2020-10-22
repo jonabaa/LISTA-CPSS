@@ -305,7 +305,90 @@ def run_test (config):
     elif config.task_type == 'cs':
         run_cs_test (config)
 
-def run_sc_test (config) :
+def run_sc_test(config):
+  """
+  Test model.
+  """
+
+  """ Load data. """
+  if config.test:
+    test_measurements, test_signals, sampling_modality = train.load_data(config)
+  else:
+    training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality = train.load_data(
+      config)
+
+  m, N = sampling_modality.shape
+
+  """Set up input for testing."""
+  config.SNR = np.inf if config.SNR == 'inf' else float(config.SNR)
+  op_dict = train.setup_input_sc(config.test, m, N, config.tbs, config.vbs, config.prefetch_size,
+                                 config.shuffle_buffer_size, config.SNR)
+  y_ = op_dict["batch_measurements"]
+  x_ = op_dict["batch_signals"]
+  initializer = op_dict["initializer"]
+  measurements_placeholder = op_dict["measurements_placeholder"]
+  signals_placeholder = op_dict["signals_placeholder"]
+
+  """Set up model."""
+  model = setup_model(config, A=sampling_modality)
+  xhs_ = model.inference(y_, None)
+
+  """Create session and initialize the graph."""
+  tfconfig = tf.ConfigProto(allow_soft_placement=True)
+  tfconfig.gpu_options.allow_growth = True
+  with tf.Session(config=tfconfig) as sess:
+    # graph initialization
+    sess.run(tf.global_variables_initializer())
+    # load model
+    model.load_trainable_variables(sess, config.modelfn)
+
+    nmse_denom = np.sum(np.square(x_))
+    supp_gt = x_ != 0
+
+    lnmse = []
+    lspar = []
+    lsperr = []
+    lflspo = []
+    lflsne = []
+
+    # test model
+    for xh_ in xhs_:
+      xh = sess.run(xh_)
+
+      # nmse:
+      loss = np.sum(np.square(xh - x_))
+      nmse_dB = 10.0 * np.log10(loss / nmse_denom)
+      print(nmse_dB)
+      lnmse.append(nmse_dB)
+
+      supp = xh != 0.0
+      # intermediate sparsity
+      spar = np.sum(supp, axis=0)
+      lspar.append(spar)
+
+      # support error
+      sperr = np.logical_xor(supp, supp_gt)
+      lsperr.append(np.sum(sperr, axis=0))
+
+      # false positive
+      flspo = np.logical_and(supp, np.logical_not(supp_gt))
+      lflspo.append(np.sum(flspo, axis=0))
+
+      # false negative
+      flsne = np.logical_and(supp_gt, np.logical_not(supp))
+      lflsne.append(np.sum(flsne, axis=0))
+
+  res = dict(nmse=np.asarray(lnmse),
+             spar=np.asarray(lspar),
+             sperr=np.asarray(lsperr),
+             flspo=np.asarray(lflspo),
+             flsne=np.asarray(lflsne))
+
+  np.savez(config.resfn, **res)
+  # end of test
+
+
+def run_sc_test_old (config) :
     """
     Test model.
     """

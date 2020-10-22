@@ -320,17 +320,7 @@ def run_sc_test(config):
       config)
 
   m, N = sampling_modality.shape
-  """
-  #Set up input for testing.
-  config.SNR = np.inf if config.SNR == 'inf' else float(config.SNR)
-  op_dict = train.setup_input_sc(config.test, m, N, config.tbs, config.vbs, config.prefetch_size,
-                                 config.shuffle_buffer_size, config.SNR)
-  y_ = op_dict["batch_measurements"]
-  x_ = op_dict["batch_signals"]
-  initializer = op_dict["initializer"]
-  measurements_placeholder = op_dict["measurements_placeholder"]
-  signals_placeholder = op_dict["signals_placeholder"]
-  """
+
   """Set up model."""
   model = setup_model(config, A=sampling_modality)
   xhs_ = model.inference(test_measurements, None)
@@ -343,8 +333,6 @@ def run_sc_test(config):
     sess.run(tf.global_variables_initializer())
     # load model
     model.load_trainable_variables(sess, config.modelfn)
-    # initiate data
-    #sess.run(initializer, feed_dict={measurements_placeholder: test_measurements, signals_placeholder: test_signals})
 
     nmse_denom = np.sum(np.square(test_signals))
     supp_gt = test_signals != 0
@@ -382,14 +370,37 @@ def run_sc_test(config):
       flsne = np.logical_and(supp_gt, np.logical_not(supp))
       lflsne.append(np.sum(flsne, axis=0))
 
+
   res = dict(nmse=np.asarray(lnmse),
              spar=np.asarray(lspar),
              sperr=np.asarray(lsperr),
              flspo=np.asarray(lflspo),
              flsne=np.asarray(lflsne))
 
+  if config.recoveries_parent_folder is not None:
+    save_recoveries(xh, res, config.recoveries_parent_folder)
+
   np.savez(config.resfn, **res)
   # end of test
+
+def save_recoveries(recoveries, statistics, recoveries_parent_folder):
+  recoveries_folder = make_recovery_folder(recoveries_parent_folder)
+  recoveries_file_name = os.path.join(recoveries_folder, "recoveries_test")
+  metrics_file_name = os.path.join(recoveries_folder, "recoveries_test_stat")
+  np.save(recoveries_file_name, recoveries)
+  np.savez(metrics_file_name, **statistics)
+
+def make_recovery_folder(self, parent_folder):
+  index = 1
+  recovery_folder = "{}_{}".format(os.path.join(parent_folder, 'recoveries'), index)
+
+  while os.path.isdir(recovery_folder):
+    index += 1
+    recovery_folder = "{}_{}".format(os.path.join(parent_folder, 'recoveries'), index)
+
+  os.mkdir(recovery_folder)
+
+  return recovery_folder
 
 
 def run_sc_test_old (config) :

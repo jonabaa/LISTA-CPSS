@@ -393,7 +393,7 @@ def save_recoveries(recoveries, statistics, recoveries_parent_folder):
   np.save(recoveries_file_name, recoveries)
   np.savez(metrics_file_name, **statistics)
 
-def make_recovery_folder(self, parent_folder):
+def make_recovery_folder(parent_folder):
   index = 1
   recovery_folder = "{}_{}".format(os.path.join(parent_folder, 'recoveries'), index)
 

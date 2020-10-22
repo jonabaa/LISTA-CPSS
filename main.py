@@ -341,6 +341,8 @@ def run_sc_test(config):
     sess.run(tf.global_variables_initializer())
     # load model
     model.load_trainable_variables(sess, config.modelfn)
+    # initiate data
+    sess.run(initializer, feed_dict={measurements_placeholder: test_measurements, signals_placeholder: test_signals})
 
     nmse_denom = np.sum(np.square(x_))
     supp_gt = x_ != 0

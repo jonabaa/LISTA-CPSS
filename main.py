@@ -318,8 +318,8 @@ def run_sc_test(config):
       config)
 
   m, N = sampling_modality.shape
-
-  """Set up input for testing."""
+  """
+  #Set up input for testing.
   config.SNR = np.inf if config.SNR == 'inf' else float(config.SNR)
   op_dict = train.setup_input_sc(config.test, m, N, config.tbs, config.vbs, config.prefetch_size,
                                  config.shuffle_buffer_size, config.SNR)
@@ -328,10 +328,10 @@ def run_sc_test(config):
   initializer = op_dict["initializer"]
   measurements_placeholder = op_dict["measurements_placeholder"]
   signals_placeholder = op_dict["signals_placeholder"]
-
+  """
   """Set up model."""
   model = setup_model(config, A=sampling_modality)
-  xhs_ = model.inference(y_, None)
+  xhs_ = model.inference(test_measurements, None)
 
   """Create session and initialize the graph."""
   tfconfig = tf.ConfigProto(allow_soft_placement=True)
@@ -342,10 +342,10 @@ def run_sc_test(config):
     # load model
     model.load_trainable_variables(sess, config.modelfn)
     # initiate data
-    sess.run(initializer, feed_dict={measurements_placeholder: test_measurements, signals_placeholder: test_signals})
+    #sess.run(initializer, feed_dict={measurements_placeholder: test_measurements, signals_placeholder: test_signals})
 
-    nmse_denom = np.sum(np.square(x_))
-    supp_gt = x_ != 0
+    nmse_denom = np.sum(np.square(test_signals))
+    supp_gt = test_signals != 0
 
     lnmse = []
     lspar = []
@@ -358,9 +358,7 @@ def run_sc_test(config):
       xh = sess.run(xh_)
 
       # nmse:
-      print(type(np))
-      print(np)
-      loss = np.sum(np.square(xh - x_))
+      loss = np.sum(np.square(xh - test_signals))
       nmse_dB = 10.0 * np.log10(loss / nmse_denom)
       print(nmse_dB)
       lnmse.append(nmse_dB)

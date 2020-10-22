@@ -313,6 +313,8 @@ def run_sc_test(config):
   """ Load data. """
   if config.test:
     test_measurements, test_signals, sampling_modality = train.load_data(config)
+    test_measurements = test_measurements.T
+    test_signals = test_signals.T
   else:
     training_measurements, training_signals, validation_measurements, validation_signals, sampling_modality = train.load_data(
       config)

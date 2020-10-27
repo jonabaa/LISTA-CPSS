@@ -15,6 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # BE QUIET!!!!
 
 # timing
 import time
+import json
 from datetime import timedelta
 
 from config import get_config
@@ -381,17 +382,35 @@ def run_sc_test(config, reshape_order="F"):
     xh = xh.T
     if len(original_signal_shape) > 2:
       xh = xh.reshape(original_signal_shape, order=reshape_order)
-    save_recoveries(xh, res, config.recoveries_parent_folder)
+    save_recoveries(xh, res, config.recoveries_parent_folder, config)
 
   np.savez(config.resfn, **res)
   # end of test
 
-def save_recoveries(recoveries, statistics, recoveries_parent_folder):
+def save_recoveries(recoveries, statistics, recoveries_parent_folder, config):
   recoveries_folder = make_recovery_folder(recoveries_parent_folder)
   recoveries_file_name = os.path.join(recoveries_folder, "recoveries_test")
   metrics_file_name = os.path.join(recoveries_folder, "recoveries_test_stat")
   np.save(recoveries_file_name, recoveries)
+  print("Recovered images saved to file '{}'.".format(recoveries_file_name))
   np.savez(metrics_file_name, **statistics)
+  print("Metrics on recovered images saved to file '{}'.".format(metrics_file_name))
+
+  # meta data
+  meta_data_file_name = os.path.join(recoveries_folder, "meta_data.json")
+  meta_data = {"Model type": config.net,
+               "Input dim": config.M,
+               "Output dim": config.N,
+               "Layers": config.T,
+               "Training batch size": config.tbs,
+               "Validation set size": config.validation_set_size,
+               "Validation batch size": config.vbs,
+               "SNR": config.SNR}
+  meta_data = {"Images recovered with following LISTA network": meta_data}
+
+  with open(meta_data_file_name, "w") as file:
+    json.dump(meta_data, file, indent=2)
+    print("Meta data saved to file '{}'.".format(meta_data_file_name))
 
 def make_recovery_folder(parent_folder):
   index = 1

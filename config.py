@@ -213,6 +213,8 @@ output_arg = parser.add_argument_group ('output')
 output_arg.add_argument (
     '--recoveries_parent_folder', type=str,
     help='Parent folder for recovered signals folders. (Use when testing) ')
+input_arg.add_argument('--output_layer', type=int,
+                       help='Choose which layer you want to save the output of. Indices start at 1. (Use when testing)')
 
 
 def get_config():
@@ -304,6 +306,10 @@ def get_config():
             config.distargs = dict (p=config.magbp,
                                     v0=config.magbv0,
                                     v1=config.magbv1)
+
+    if config.output_layer is not None and config.T is not None and config.test:
+        if config.output_layer > config.T or config.output_layer < 1:
+            raise ValueError("Output layer chosen for saving does not exist: {}".format(config.output_layer))
 
     return config, unparsed
 

@@ -345,8 +345,16 @@ def run_sc_test(config, reshape_order="F"):
     lflsne = []
 
     # test model
-    for xh_ in xhs_:
+    output_layer = None
+
+    for i, xh_ in enumerate(xhs_):
       xh = sess.run(xh_)
+
+      if config.output_layer is None:
+        output_layer = xh
+      else:
+        if (i+1) == config.output_layer:
+          output_layer = xh
 
       # nmse:
       loss = np.sum(np.square(xh - test_signals))
@@ -379,10 +387,10 @@ def run_sc_test(config, reshape_order="F"):
              flsne=np.asarray(lflsne))
 
   if config.recoveries_parent_folder is not None:
-    xh = xh.T
+    output_layer = output_layer.T
     if len(original_signal_shape) > 2:
-      xh = xh.reshape(original_signal_shape, order=reshape_order)
-    save_recoveries(xh, res, config.recoveries_parent_folder, config)
+      output_layer = output_layer.reshape(original_signal_shape, order=reshape_order)
+    save_recoveries(output_layer, res, config.recoveries_parent_folder, config)
 
   np.savez(config.resfn, **res)
   # end of test

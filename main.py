@@ -410,10 +410,15 @@ def save_recoveries(recoveries, statistics, recoveries_parent_folder, config):
                "Input dim": config.M,
                "Output dim": config.N,
                "Layers": config.T,
+               "Initial lambda": config.lam,
+               "Percent (supp. sel.)": config.percent,
+               "Max percent (supp. sel.)": config.max_percent,
+               "Learning rate decay rate": config.decay_rate,
                "Training batch size": config.tbs,
                "Validation set size": config.validation_set_size,
                "Validation batch size": config.vbs,
-               "SNR": config.SNR}
+               "SNR": config.SNR,
+               "Experiment ID": config.exp_id}
   meta_data = {"Images recovered with following LISTA network": meta_data}
 
   with open(meta_data_file_name, "w") as file:
